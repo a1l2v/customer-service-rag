@@ -70,7 +70,7 @@ Holds **only accepted queries** linked to a product.
 
 ---
 
-# Updated Workflow
+# Complete Workflow
 
 1. **User Query**
 
@@ -92,12 +92,22 @@ Holds **only accepted queries** linked to a product.
    * Pass `(query + context)` → `gpt-4o-mini`.
    * Return answer to API caller.
 
-5. **Feedback**
+5. **Feedback **
 
-   * If user tags answer as “working” → insert into `qa_history`:
+   * If the user tags the answer as **“working”**:
 
-     * `product_id`, `query_text`, `query_embedding`, `solution_text`, `created_at`.
-   * Otherwise → discard.
+     1. Fetch the `solution_text` from `qa_history` at the given `qa_history_id`.
+     2. Embed the **new solution text** and **stored solution**(`text-embedding-3-small`).
+     3. Compute similarity between the **stored solution embedding** and the **new solution embedding**.
+     4. If similarity ≥ threshold:
+
+        * ✅ Consider it redundant → **do not add** to `qa_history`.
+     5. Else:
+
+        * ➕ Insert a new record into `qa_history`:
+
+          * `product_id`, `query_text`, `query_embedding`, `solution_text`, `created_at`.
+   * If tagged as “not working” → discard.
 
 ---
 
@@ -118,7 +128,11 @@ Holds **only accepted queries** linked to a product.
 ```json
 {
   "answer": "You can reset your password by visiting ...",
-  "sources": ["product_kb", "qa_history"]
+  "sources": {
+    "product_kb":id,
+    "user_kb":id,
+    "qa_history":id,
+  }
 }
 ```
 
@@ -129,6 +143,7 @@ Holds **only accepted queries** linked to a product.
 ```json
 {
   "query": "How do I reset my password?",
+  "qa_history":id,
   "solution": "Visit settings → security → reset password",
   "product_id": 1001,
   "user_id": 42
