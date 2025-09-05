@@ -1,6 +1,33 @@
 
 ---
 
+# ⚙️ Tech Stack
+
+### **Core**
+
+* **Language** → Python 3.10+
+* **Framework** → FastAPI (backend API service)
+* **Package Management** → `pip`
+
+### **LLM + Embeddings**
+
+* **Embedding Model** → `text-embedding-3-small` (OpenAI)
+* **LLM for Answering** → `gpt-4o-mini` (OpenAI)
+
+### **Vector Database**
+
+* **Milvus** → for storing embeddings & performing similarity search
+* **Client Library** → `pymilvus`
+
+### **Other Dependencies**
+
+* `openai` → for embeddings + completions
+* `python-dotenv` → for managing API keys/configs
+* `uvicorn` → ASGI server to run FastAPI
+* `pydantic` → request/response validation in FastAPI
+
+---
+
 # Database Schema (Milvus)
 
 We’ll keep **3 collections**:
