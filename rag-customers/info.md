@@ -1,6 +1,24 @@
 
 ---
 
+# ⚡ RAG-Powered Support Bot – Instant Answer Sources
+
+A **RAG-powered support bot** can cut down wait times by pulling instant answers from:
+
+* 📘 **Product Manuals**
+  (e.g., PDFs converted into embeddings for setup guides, troubleshooting, and specs)
+
+* 📑 **Policy Documents**
+  (returns, refunds, warranties, delivery timelines, replacement terms)
+
+* 🕑 **Past Resolved Queries (`qa_history`)**
+  (previous customer queries + accepted solutions to avoid repeated effort)
+
+* 👤 **Customer-Specific Info (`user_kb`)**
+  (orders, preferences, warranty status, past issues, delivery status)
+
+---
+
 # ⚙️ Tech Stack
 
 ### **Core**
@@ -16,8 +34,8 @@
 
 ### **Vector Database**
 
-* **Milvus** → for storing embeddings & performing similarity search
-* **Client Library** → `pymilvus`
+* **Supabase** → for storing embeddings & performing similarity search via Postgres RBC (stored functions)
+* **Client Library** → `supabase-py`
 
 ### **Other Dependencies**
 
@@ -28,7 +46,7 @@
 
 ---
 
-# Database Schema (Milvus)
+# Database Schema (Supabase)
 
 We’ll keep **3 collections**:
 
@@ -155,8 +173,120 @@ Holds **only accepted queries** linked to a product.
 ```json
 {
   "message": "Feedback saved into qa_history"
+  "qa_history_id":id,
 }
 ```
+
+---
+
+
+# 📂 Project Folder Structure
+
+```bash
+rag-customers/
+│── .env                        # API keys & configs (OpenAI, Supabase)
+│── requirements.txt            # Python dependencies
+│── README.md                   # Documentation
+│── main.py                     # FastAPI entry point
+│
+├── app/
+│   ├── __init__.py
+│   ├── config.py               # Load env variables, Supabase client setup
+│   ├── models/                 
+│   │   ├── schemas.py          # Pydantic request/response models
+│   │   ├── supabase_schema.sql # SQL for Supabase table setup
+│   │
+│   ├── services/               
+│   │   ├── embeddings.py       # Wrapper for OpenAI embeddings
+│   │   ├── llm.py              # Wrapper for GPT-4o-mini answering
+│   │   ├── search.py           # Supabase similarity search functions (RPC calls)
+│   │   ├── feedback.py         # Logic for saving + deduplication in qa_history
+│   │
+│   ├── routes/                 
+│   │   ├── query.py            # /query endpoint
+│   │   ├── feedback.py         # /feedback endpoint
+│   │   ├── health.py           # /health endpoint (for debugging)
+│   │
+│   └── utils/                  
+│       ├── logger.py           # Logging setup
+│       ├── similarity.py       # Cosine similarity + thresholding
+│
+├── tests/                      
+│   ├── __init__.py
+│   ├── test_query.py           # Unit tests for query flow
+│   ├── test_feedback.py        # Unit tests for feedback flow
+│   ├── test_search.py          # Unit tests for Supabase similarity search
+│
+└── scripts/                    
+    ├── init_db.py              # Create Supabase tables + indexes
+    ├── seed_data.py            # Load sample product_kb, user_kb, qa_history
+```
+
+---
+
+# 📑 File Responsibilities
+
+### **Root**
+
+* `.env` → OpenAI & Supabase keys, DB URLs.
+* `requirements.txt` → dependencies (`fastapi`, `uvicorn`, `openai`, `supabase-py`, `pydantic`, `python-dotenv`).
+* `main.py` → FastAPI app instance, include routes.
+
+---
+
+### **app/config.py**
+
+* Reads `.env`
+* Creates **Supabase client**
+* Configures OpenAI client
+
+---
+
+### **app/models/schemas.py**
+
+* Pydantic models for input/output:
+
+  * `QueryRequest`, `QueryResponse`
+  * `FeedbackRequest`, `FeedbackResponse`
+
+---
+
+### **app/services/**
+
+* `embeddings.py` → calls OpenAI `text-embedding-3-small`.
+* `llm.py` → calls `gpt-4o-mini`.
+* `search.py` → Supabase RPC for similarity search.
+* `feedback.py` → logic for deduplication + inserting into `qa_history`.
+
+---
+
+### **app/routes/**
+
+* `query.py` → `/query` endpoint (search → context → LLM → return answer).
+* `feedback.py` → `/feedback` endpoint (save if unique).
+* `health.py` → `/health` for monitoring.
+
+---
+
+### **app/utils/**
+
+* `logger.py` → custom logger for tracking requests/errors.
+* `similarity.py` → cosine similarity, thresholding logic.
+
+---
+
+### **tests/**
+
+* `test_query.py` → tests `/query` with sample embeddings.
+* `test_feedback.py` → tests deduplication logic.
+* `test_search.py` → tests Supabase vector search.
+
+---
+
+### **scripts/**
+
+* `init_db.py` → sets up Supabase schema (`product_kb`, `user_kb`, `qa_history`).
+* `seed_data.py` → load sample JSON data for testing.
 
 ---
 
